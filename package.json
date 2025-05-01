@@ -1,0 +1,18 @@
+{
+  "name": "Defect-Detection",
+  "version": "0.0.0",
+  "description": "Defect-Detection",
+  "main": "app.js",
+  "author": {
+    "name": ""
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1"
+  },
+  "eslintConfig": {},
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "Defect-Detection": "file:",
+    "framer-motion": "^12.9.1"
+  }
+}
