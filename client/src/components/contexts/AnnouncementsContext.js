@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import useAnnouncements from '../hooks/useAnnouncements';
+import useAnnouncements from '../../hooks/useAnnouncements';
 
 const AnnouncementsContext = createContext();
 
