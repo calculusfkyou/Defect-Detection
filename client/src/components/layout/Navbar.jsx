@@ -59,6 +59,24 @@ export default function Navbar() {
     }
   };
 
+  const handleAboutClick = (e) => {
+    e.preventDefault();
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'instant'
+    });
+
+    navigate('/about');
+
+    // 如果已經在關於我們頁面，重新載入頁面狀態
+    if (window.location.pathname === '/about') {
+      // 如果不想重新載入整個頁面，也可以觸發特定的狀態更新
+      // 例如通過 context 或其他狀態管理來重新獲取數據
+      window.location.reload();
+    }
+  };
+
   return (
     <>
       {/* 空白div用來補償fixed導覽列佔用的空間 */}
@@ -95,7 +113,7 @@ export default function Navbar() {
                   <Link to="/history" className="px-4 py-3 rounded-md text-base font-medium hover:bg-gray-800">歷史紀錄</Link>
                   <Link to="/announcements" onClick={handleAnnouncementClick} className="px-4 py-3 rounded-md text-base font-medium hover:bg-gray-800">最新公告</Link>
                   <Link to="/help/about-system" className="px-4 py-3 rounded-md text-base font-medium hover:bg-gray-800">使用手冊</Link>
-                  <Link to="/about" className="px-4 py-3 rounded-md text-base font-medium hover:bg-gray-800">關於我們</Link>
+                  <Link to="/about" onClick={handleAboutClick} className="px-4 py-3 rounded-md text-base font-medium hover:bg-gray-800">關於我們</Link>
                 </div>
               </div>
             </div>
@@ -145,9 +163,9 @@ export default function Navbar() {
               <Link to="/" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">首頁</Link>
               <Link to="/detection" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">影像檢測</Link>
               <Link to="/history" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">歷史紀錄</Link>
-              <Link to="/announcements" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">最新公告</Link>
+              <Link to="/announcements" onClick={handleAnnouncementClick} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">最新公告</Link>
               <Link to="/help/about-system" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">使用手冊</Link>
-              <Link to="/about" className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">關於我們</Link>
+              <Link to="/about" onClick={handleAboutClick} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">關於我們</Link>
             </div>
             <div className="pt-4 pb-3 border-t border-gray-700">
               <div className="flex flex-col space-y-2 px-5">

@@ -7,6 +7,7 @@ dotenv.config()
 import statsRouter from './routes/statsRoute.js'
 import announcementsRouter from './routes/announcementRoute.js'
 import guidesRouter from './routes/guideRoute.js'
+import aboutRouter from './routes/aboutRoute.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -30,6 +31,7 @@ app.get('/api/hello', (req, res) => {
 app.use('/api/stats', statsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/guides', guidesRouter)
+app.use('/api/about', aboutRouter)
 
 const startServer = (port) => {
   const server = app.listen(port, () => {
