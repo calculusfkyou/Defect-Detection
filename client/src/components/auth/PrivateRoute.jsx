@@ -7,11 +7,11 @@ import Spinner from '../ui/Spinner';
  * 私有路由組件，只允許已認證的用戶訪問
  */
 const PrivateRoute = ({ allowedRoles }) => {
-  const { isAuthenticated, user, loading, hasRole } = useAuth();
+  const { isAuthenticated, user, loading, authChecked, hasRole } = useAuth();
   const location = useLocation();
 
-  // 如果仍在載入用戶信息，顯示加載指示器
-  if (loading) {
+  // 如果認證檢查尚未完成，顯示加載指示器
+  if (!authChecked || loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Spinner size="lg" />

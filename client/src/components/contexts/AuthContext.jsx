@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { getCurrentUser, loginUser, logoutUser, registerUser } from '../services/authService';
+import { getCurrentUser, loginUser, logoutUser, registerUser } from '../../services/authService';
 
 // 創建認證上下文
 export const AuthContext = createContext();
@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false); // 新增狀態
 
   // 在組件掛載時檢查用戶是否已登入
   useEffect(() => {
@@ -17,9 +18,11 @@ export const AuthProvider = ({ children }) => {
         const { user } = await getCurrentUser();
         setUser(user);
       } catch (err) {
+        // 這是預期中的錯誤 - 用戶未登入，不需要作為錯誤處理
         setUser(null);
       } finally {
         setLoading(false);
+        setAuthChecked(true); // 標記認證檢查已完成
       }
     };
 
@@ -84,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    authChecked, // 添加到上下文中
     login,
     register,
     logout,

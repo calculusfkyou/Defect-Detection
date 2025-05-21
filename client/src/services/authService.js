@@ -62,6 +62,13 @@ export const getCurrentUser = async () => {
     });
     return response.data;
   } catch (error) {
+    // 401 未授權是預期的錯誤 - 用戶尚未登入
+    if (error.response?.status === 401) {
+      throw { status: 401, message: '用戶未登入' };
+    }
+
+    // 其他錯誤
+    console.error('獲取用戶信息失敗:', error);
     throw error.response?.data || { message: '獲取用戶信息失敗' };
   }
 };

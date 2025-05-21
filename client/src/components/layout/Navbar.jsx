@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import useAuth from '../../hooks/useAuth';
+import UserMenu from '../auth/UserMenu';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const { isAuthenticated, user } = useAuth();
 
   // 監聽滾動事件，用於控制導覽列顯示/隱藏
   useEffect(() => {
@@ -119,24 +122,29 @@ export default function Navbar() {
             </div>
             <div className="hidden md:block">
               <div className="ml-4 flex items-center md:ml-6">
-                <div className="flex space-x-3">
-                  <Link to="/login">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      className="px-5 py-2 text-base border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors"
-                    >
-                      登入
-                    </motion.button>
-                  </Link>
-                  <Link to="/register">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      className="px-5 py-2 text-base bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      註冊
-                    </motion.button>
-                  </Link>
-                </div>
+                {/* 根據登入狀態顯示不同內容 */}
+                {isAuthenticated() ? (
+                  <UserMenu />
+                ) : (
+                  <div className="flex space-x-3">
+                    <Link to="/login">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        className="px-5 py-2 text-base border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors"
+                      >
+                        登入
+                      </motion.button>
+                    </Link>
+                    <Link to="/register">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        className="px-5 py-2 text-base bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                      >
+                        註冊
+                      </motion.button>
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
             <div className="-mr-2 flex md:hidden">
@@ -168,18 +176,54 @@ export default function Navbar() {
               <Link to="/about" onClick={handleAboutClick} className="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-800">關於我們</Link>
             </div>
             <div className="pt-4 pb-3 border-t border-gray-700">
-              <div className="flex flex-col space-y-2 px-5">
-                <Link to="/login" className="w-full">
-                  <button className="w-full px-4 py-2 text-sm border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors">
-                    登入
+              {/* 移動裝置的登入/用戶選單 */}
+              {isAuthenticated() ? (
+                <div className="px-5 py-3 flex flex-col space-y-3">
+                  <div className="flex items-center px-4 py-2 rounded-md bg-gray-800">
+                    <div className="flex-shrink-0">
+                      {/* 使用者頭像 */}
+                      <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <div className="text-base font-medium leading-none text-white">{user?.name}</div>
+                      <div className="text-sm font-medium leading-none text-gray-400 mt-1">{user?.email}</div>
+                    </div>
+                  </div>
+
+                  <Link to="/profile" className="block w-full px-4 py-2 text-base font-medium text-center bg-gray-800 text-white rounded-md hover:bg-gray-700">
+                    個人資料
+                  </Link>
+
+                  <button
+                    onClick={async () => {
+                      try {
+                        await useAuth().logout();
+                        window.location.href = '/';
+                      } catch (error) {
+                        console.error('登出失敗', error);
+                      }
+                    }}
+                    className="block w-full px-4 py-2 text-base font-medium text-center bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    登出
                   </button>
-                </Link>
-                <Link to="/register" className="w-full">
-                  <button className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                    註冊
-                  </button>
-                </Link>
-              </div>
+                </div>
+              ) : (
+                <div className="flex flex-col space-y-2 px-5">
+                  <Link to="/login" className="w-full">
+                    <button className="w-full px-4 py-2 text-sm border border-blue-500 text-blue-500 rounded-md hover:bg-blue-500 hover:text-white transition-colors">
+                      登入
+                    </button>
+                  </Link>
+                  <Link to="/register" className="w-full">
+                    <button className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                      註冊
+                    </button>
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

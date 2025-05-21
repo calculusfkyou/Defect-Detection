@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^1.0.6",
-    "axios": "^1.8.4",
+    "axios": "^1.9.0",
     "client": "file:",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.9.2",
