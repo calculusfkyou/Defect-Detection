@@ -16,10 +16,7 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: {
-      name: 'users_email_unique', // 明確指定索引名稱
-      msg: 'Email已被使用'
-    },
+    unique: true,
     validate: {
       isEmail: true,
     },
@@ -63,7 +60,7 @@ const User = sequelize.define('User', {
 });
 
 // 檢查密碼是否正確的實例方法
-User.prototype.isPasswordCorrect = async function (password) {
+User.prototype.isPasswordCorrect = async function(password) {
   return await bcrypt.compare(password, this.password);
 };
 

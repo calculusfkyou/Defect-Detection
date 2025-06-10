@@ -1,9 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import sequelize from './config/database.js';
-import fs from 'fs';
-import path from 'path';
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import sequelize from './config/database.js'
 dotenv.config()
 
 // 引入路由模組
@@ -13,8 +11,6 @@ import guidesRouter from './routes/guideRoute.js'
 import aboutRouter from './routes/aboutRoute.js'
 import authRoutes from './routes/authRoutes.js';
 import cookieParser from 'cookie-parser';
-import detectionRoutes from './routes/detectionRoutes.js';
-import { initializeModel } from './controllers/detectionController.js';
 // import { initDefaultUsers } from './model/userModel.js';
 
 const app = express()
@@ -41,8 +37,8 @@ app.use('/api/stats', statsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/guides', guidesRouter)
 app.use('/api/about', aboutRouter)
+
 app.use('/api/auth', authRoutes);
-app.use('/api/detection', detectionRoutes);
 // initDefaultUsers();
 
 const startServer = (port) => {
@@ -53,7 +49,6 @@ const startServer = (port) => {
 
       await sequelize.sync({ alter: true });
       console.log('Tables sync successfully');
-      await initializeModel();
     } catch (error) {
       console.log('Unable to connect to MySQL:', error);
     }

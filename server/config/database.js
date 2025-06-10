@@ -25,6 +25,10 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
     timestamps: true,
     underscored: false,
   },
+  dialectOptions: {
+    connectTimeout: 60000, // 60秒連接超時
+    typeCast: true,
+  },
 });
 
 export default sequelize;

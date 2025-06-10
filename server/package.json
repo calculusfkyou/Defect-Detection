@@ -19,13 +19,17 @@
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
+    "float16": "^0.0.1",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.0",
     "mysql2": "^3.14.1",
     "nodemailer": "^7.0.3",
+    "onnxruntime-node": "^1.22.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "sequelize": "^6.37.7",
     "server": "file:",
+    "sharp": "^0.34.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
