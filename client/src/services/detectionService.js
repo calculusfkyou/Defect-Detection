@@ -21,6 +21,12 @@ export const detectDefectsInImage = async (image, options = {}) => {
       formData.append('userId', options.userId);
     }
 
+    console.log('📤 發送檢測請求:', {
+      imageSize: image.size,
+      imageType: image.type,
+      confidenceThreshold: options.confidenceThreshold
+    });
+
     const response = await authAxios.post('/api/detection', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -28,9 +34,31 @@ export const detectDefectsInImage = async (image, options = {}) => {
       timeout: 60000, // 60秒超時，因為檢測可能需要時間
     });
 
+    console.log('📥 收到檢測響應:', {
+      success: response.data.success,
+      dataKeys: Object.keys(response.data.data || {}),
+      defectsCount: response.data.data?.defects?.length || 0
+    });
+
+    // 🔍 詳細檢查響應數據
+    if (response.data.success && response.data.data) {
+      console.log('🔍 響應數據詳情:', {
+        defects: response.data.data.defects,
+        defectsLength: response.data.data.defects?.length,
+        summary: response.data.data.summary,
+        hasOriginalImage: !!response.data.data.originalImage,
+        hasResultImage: !!response.data.data.resultImage
+      });
+
+      // 檢查每個瑕疵
+      if (Array.isArray(response.data.data.defects) && response.data.data.defects.length > 0) {
+        console.log('🔍 瑕疵數據樣本:', response.data.data.defects[0]);
+      }
+    }
+
     return {
       success: true,
-      data: response.data,
+      data: response.data.data,  // 🔑 確保返回的是 response.data.data
     };
   } catch (error) {
     console.error('檢測失敗:', error);

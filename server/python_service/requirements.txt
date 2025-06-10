@@ -1,5 +1,15 @@
 fastapi==0.104.1
-uvicorn==0.24.0
+uvicorn[standard]==0.24.0
 ultralytics==8.0.196
 python-multipart==0.0.6
 Pillow==10.0.1
+opencv-python==4.8.1.78
+torchvision==0.16.0
+numpy==1.24.3
+onnx==1.18.0
+onnxruntime-gpu==1.22.0
+protobuf==6.31.1
+coloredlogs==15.0.1
+flatbuffers==25.2.10
+humanfriendly==10.0
+pyreadline3==3.5.4

@@ -45,9 +45,14 @@ const DetectionPage = () => {
   };
 
   // 開始檢測
-  const handleDetect = async () => {
+  const handleDetect = async (confidence) => {
     if (!image) return;
-    await detectDefects();
+    try {
+      await detectDefects(confidence); // 傳遞置信度參數
+    } catch (error) {
+      console.error('檢測失敗:', error);
+      // 可以在這裡添加錯誤提示
+    }
   };
 
   // 重置檢測

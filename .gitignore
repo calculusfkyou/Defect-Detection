@@ -33,4 +33,7 @@ Thumbs.db
 coverage/
 
 *.onnx
+*.pt
 .venv/
+test.jpg
+test_model.py

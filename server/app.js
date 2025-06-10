@@ -2,6 +2,8 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import sequelize from './config/database.js'
+import path from 'path'
+import fs from 'fs'
 dotenv.config()
 
 // 引入路由模組
@@ -10,6 +12,7 @@ import announcementsRouter from './routes/announcementRoute.js'
 import guidesRouter from './routes/guideRoute.js'
 import aboutRouter from './routes/aboutRoute.js'
 import authRoutes from './routes/authRoutes.js';
+import detectionRoutes from './routes/detectionRoutes.js'
 import cookieParser from 'cookie-parser';
 // import { initDefaultUsers } from './model/userModel.js';
 
@@ -37,7 +40,7 @@ app.use('/api/stats', statsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/guides', guidesRouter)
 app.use('/api/about', aboutRouter)
-
+app.use('/api/detection', detectionRoutes)
 app.use('/api/auth', authRoutes);
 // initDefaultUsers();
 

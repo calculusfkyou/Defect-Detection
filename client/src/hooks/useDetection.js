@@ -51,33 +51,42 @@ const useDetection = () => {
       setResults(null);
       setProgress(0);
 
+      console.log('🔍 開始檢測，置信度:', confidenceThreshold);
+
       // 開始模擬進度
       const stopSimulation = simulateProgress();
 
-      // 壓縮圖像以提高上傳和處理速度
-      const compressedImage = await compressImage(image, {
-        maxWidth: 1920,
-        maxHeight: 1080,
-        quality: 0.9
-      });
-
-      // 呼叫API進行檢測
-      const result = await detectDefectsInImage(compressedImage, {
-        confidenceThreshold,
-        userId: isAuthenticated() ? user?.id : null
+      // 呼叫API進行檢測 - 注意這裡不需要壓縮，直接使用原圖
+      const result = await detectDefectsInImage(image, {
+        confidenceThreshold: confidenceThreshold,
+        userId: user?.id
       });
 
       // 檢測完成，停止模擬進度
       stopSimulation();
       setProgress(100);
 
+      console.log('🔍 useDetection 收到檢測結果:', result);
+
       // 如果有結果，處理結果
-      if (result.success) {
-        setResults(result.data);
+      if (result.success && result.data) {
+        console.log('✅ 檢測成功，設置結果:', {
+          defectsCount: result.data.defects?.length || 0,
+          hasOriginalImage: !!result.data.originalImage,
+          hasResultImage: !!result.data.resultImage,
+          summary: result.data.summary
+        });
+
+        setResults(result.data);  // 🔑 設置檢測結果
 
         // 如果用戶已登入，自動保存結果
-        if (isAuthenticated() && user) {
-          await saveDetectionResult(result.data, user.id);
+        if (isAuthenticated() && user && result.data.defects?.length > 0) {
+          try {
+            await saveDetectionResult(result.data, user.id);
+            console.log('✅ 結果已自動保存');
+          } catch (saveError) {
+            console.error('自動保存失敗:', saveError);
+          }
         }
 
         return result.data;
@@ -85,6 +94,7 @@ const useDetection = () => {
         throw new Error(result.message || '檢測失敗');
       }
     } catch (err) {
+      console.error('檢測過程錯誤:', err);
       setError(err.message || '檢測過程中發生錯誤');
       return null;
     } finally {
