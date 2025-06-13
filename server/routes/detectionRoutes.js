@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { protect, restrictTo } from '../middlewares/authMiddleware.js';
+import { protect, restrictTo, optionalAuth } from '../middlewares/authMiddleware.js';
 import * as detectionController from '../controllers/detectionController.js';
 
 const router = express.Router();
@@ -36,7 +36,7 @@ const modelUpload = multer({
 });
 
 // 公開路由 - 訪客也可以使用
-router.post('/', upload.single('image'), detectionController.detectDefects);
+router.post('/', optionalAuth, upload.single('image'), detectionController.detectDefects);
 
 // 受保護路由 - 需要登入
 router.get('/history', protect, detectionController.getUserDetectionHistory);

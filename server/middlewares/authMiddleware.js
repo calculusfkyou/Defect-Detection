@@ -73,7 +73,54 @@ export const restrictTo = (...roles) => {
   };
 };
 
+/**
+ * 可選認證 - 檢查用戶是否已登入，但不阻止未登入用戶
+ */
+export const optionalAuth = async (req, res, next) => {
+  try {
+    // 從Cookie中獲取JWT
+    const token = req.cookies.jwt;
+
+    if (!token) {
+      // 沒有token，繼續但不設置用戶
+      console.log('⚠️ 可選認證: 未找到JWT令牌，訪客模式');
+      return next();
+    }
+
+    try {
+      // 驗證JWT
+      const decoded = verifyToken(token);
+
+      // 檢查用戶是否存在
+      const user = await User.findByPk(decoded.id);
+
+      if (user && user.active) {
+        // 將用戶信息添加到請求對象中
+        req.user = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
+        console.log('✅ 可選認證: 用戶已認證', { id: user.id, email: user.email });
+      } else {
+        console.log('⚠️ 可選認證: 用戶不存在或已停用');
+      }
+    } catch (tokenError) {
+      // Token無效，但不阻止請求
+      console.log('⚠️ 可選認證: 無效的token:', tokenError.message);
+    }
+
+    next();
+  } catch (error) {
+    // 如果發生錯誤，繼續但不設置用戶
+    console.error('⚠️ 可選認證錯誤:', error);
+    next();
+  }
+};
+
 export default {
   protect,
   restrictTo,
+  optionalAuth,
 };

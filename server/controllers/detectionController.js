@@ -21,6 +21,19 @@ export const detectDefects = async (req, res) => {
 
     console.log('🔍 開始檢測處理，置信度:', confidenceThreshold);
 
+    // 🔧 詳細檢查用戶認證狀態
+    console.log('🔒 用戶認證檢查:', {
+      hasReqUser: !!req.user,
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      userRole: req.user?.role,
+      cookies: req.cookies,
+      headers: {
+        authorization: req.headers.authorization,
+        cookie: req.headers.cookie
+      }
+    });
+
     // 執行檢測 (調用Python服務)
     const detectionResult = await runDetection(imageBuffer, confidenceThreshold);
 
@@ -31,11 +44,25 @@ export const detectDefects = async (req, res) => {
     });
 
     const userId = req.user?.id;
+    console.log('👤 用戶ID提取結果:', userId);
 
     // 保存檢測記錄 (如果用戶已登入)
     let savedHistory = null;
     if (userId) {
       try {
+        console.log('💾 開始保存檢測歷史...');
+
+        // 🔧 詳細的保存過程日誌
+        console.log('💾 準備保存的數據:', {
+          userId,
+          originalImageSize: imageBuffer.length,
+          originalImageType: imageType,
+          resultImageSize: detectionResult.resultImage?.length,
+          defectCount: detectionResult.defectCount,
+          averageConfidence: detectionResult.averageConfidence,
+          detectionTime: detectionResult.detectionTime
+        });
+
         savedHistory = await DetectionHistory.create({
           userId,
           originalImage: imageBuffer,
@@ -46,23 +73,36 @@ export const detectDefects = async (req, res) => {
           detectionTime: detectionResult.detectionTime
         });
 
-        // 🔧 修復縮圖數據保存
-        for (const defect of detectionResult.defects) {
-          // 處理縮圖數據 - 只保存純 base64 字符串到數據庫
+        console.log('✅ 檢測歷史主記錄已保存，ID:', savedHistory.id);
+
+        // 保存瑕疵詳情
+        for (const [index, defect] of detectionResult.defects.entries()) {
           let thumbnailBuffer = null;
           if (defect.thumbnail) {
             try {
-              // 移除可能的 data:image/jpeg;base64, 前綴
-              const base64Data = defect.thumbnail.replace(/^data:image\/[a-z]+;base64,/, '');
+              console.log(`🔍 處理第 ${index + 1} 個瑕疵縮圖:`, {
+                defectType: defect.defectType,
+                thumbnailLength: defect.thumbnail.length,
+                startsWithData: defect.thumbnail.startsWith('data:'),
+                thumbnailPrefix: defect.thumbnail.substring(0, 50)
+              });
+
+              // 如果已經包含 data: 前綴，則移除它
+              let base64Data = defect.thumbnail;
+              if (base64Data.startsWith('data:image/')) {
+                base64Data = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+                console.log('🔧 移除 data: 前綴後長度:', base64Data.length);
+              }
+
               thumbnailBuffer = Buffer.from(base64Data, 'base64');
-              console.log('✅ 縮圖數據處理成功，大小:', thumbnailBuffer.length, 'bytes');
+              console.log('✅ 縮圖 Buffer 處理成功，大小:', thumbnailBuffer.length, 'bytes');
             } catch (thumbnailError) {
-              console.error('⚠️ 縮圖數據處理失敗:', thumbnailError);
+              console.error(`⚠️ 第 ${index + 1} 個瑕疵縮圖數據處理失敗:`, thumbnailError);
               thumbnailBuffer = null;
             }
           }
 
-          await DefectDetail.create({
+          const defectDetailData = {
             detectionId: savedHistory.id,
             defectType: defect.defectType,
             classId: defect.classId,
@@ -71,38 +111,60 @@ export const detectDefects = async (req, res) => {
             width: defect.width,
             height: defect.height,
             confidence: defect.confidence,
-            thumbnailImage: thumbnailBuffer  // 保存處理後的 Buffer
+            thumbnailImage: thumbnailBuffer
+          };
+
+          console.log(`💾 準備保存瑕疵詳情 ${index + 1}:`, {
+            detectionId: defectDetailData.detectionId,
+            defectType: defectDetailData.defectType,
+            confidence: defectDetailData.confidence,
+            hasThumbnail: !!defectDetailData.thumbnailImage,
+            thumbnailSize: defectDetailData.thumbnailImage?.length
           });
+
+          const defectDetail = await DefectDetail.create(defectDetailData);
+          console.log(`✅ 瑕疵詳情 ${index + 1} 已保存，ID:`, defectDetail.id);
         }
 
-        console.log('✅ 檢測歷史已保存，ID:', savedHistory.id);
+        console.log('✅ 所有檢測數據已保存完成，主記錄ID:', savedHistory.id);
       } catch (saveError) {
-        console.error('保存檢測歷史記錄失敗:', saveError);
+        console.error('❌ 保存檢測歷史記錄失敗:', saveError);
+        console.error('❌ 錯誤詳情:', saveError.stack);
+        console.error('❌ 錯誤類型:', saveError.name);
+        console.error('❌ 錯誤訊息:', saveError.message);
+
+        // 檢查是否是資料庫連接問題
+        if (saveError.name === 'SequelizeConnectionError') {
+          console.error('❌ 資料庫連接錯誤');
+        } else if (saveError.name === 'SequelizeValidationError') {
+          console.error('❌ 資料驗證錯誤:', saveError.errors);
+        }
+
+        // 如果保存失敗，不影響返回檢測結果，但記錄錯誤
       }
+    } else {
+      console.log('⚠️ 用戶未登入，跳過保存步驟');
     }
 
     // 🔧 準備響應數據 - 確保格式正確
     const originalBase64 = `data:${imageType};base64,${imageBuffer.toString('base64')}`;
     const resultBase64 = `data:image/jpeg;base64,${detectionResult.resultImage.toString('base64')}`;
 
-    // 🔑 關鍵修復：正確處理縮圖數據格式
+    // 處理瑕疵數據
     const processedDefects = detectionResult.defects.map((defect, index) => {
-      // 處理縮圖數據
       let thumbnailUrl = null;
       if (defect.thumbnail) {
-        // 檢查是否已經有 data: 前綴
-        if (defect.thumbnail.startsWith('data:')) {
-          thumbnailUrl = defect.thumbnail;  // 已經是完整的 data URL
+        if (defect.thumbnail.startsWith('data:image/')) {
+          thumbnailUrl = defect.thumbnail;
         } else {
-          thumbnailUrl = `data:image/jpeg;base64,${defect.thumbnail}`;  // 添加前綴
+          thumbnailUrl = `data:image/jpeg;base64,${defect.thumbnail}`;
         }
 
-        console.log('🔍 縮圖 URL 處理:', {
-          defectId: index + 1,
+        console.log(`🔍 為前端準備縮圖 ${index + 1}:`, {
           defectType: defect.defectType,
-          hasOriginalThumbnail: !!defect.thumbnail,
-          thumbnailStartsWith: defect.thumbnail?.substring(0, 50),
-          finalUrlStartsWith: thumbnailUrl?.substring(0, 50)
+          originalLength: defect.thumbnail.length,
+          finalUrlLength: thumbnailUrl.length,
+          hasDataPrefix: thumbnailUrl.startsWith('data:image/')
         });
       }
 
@@ -122,7 +184,7 @@ export const detectDefects = async (req, res) => {
         yCenter: defect.yCenter || 0,
         width: defect.width || 0,
         height: defect.height || 0,
-        thumbnail: thumbnailUrl,  // 🔑 使用處理後的縮圖 URL
+        thumbnail: thumbnailUrl,
         description: getDefectDescription(defect.defectType),
         recommendation: getDefectRecommendation(defect.defectType)
       };
@@ -132,16 +194,10 @@ export const detectDefects = async (req, res) => {
       defectsCount: processedDefects.length,
       totalDefects: detectionResult.defectCount,
       defectTypes: processedDefects.map(d => d.type),
-      thumbnailCounts: processedDefects.filter(d => d.thumbnail).length
+      thumbnailCounts: processedDefects.filter(d => d.thumbnail).length,
+      savedHistoryId: savedHistory?.id,
+      hasUserId: !!userId
     });
-
-    if (processedDefects.length > 0) {
-      console.log('🔧 第一個瑕疵縮圖樣本:', {
-        defectType: processedDefects[0].defectType,
-        hasThumbnail: !!processedDefects[0].thumbnail,
-        thumbnailPrefix: processedDefects[0].thumbnail?.substring(0, 30)
-      });
-    }
 
     // 構建響應結構
     const responseData = {
@@ -165,13 +221,15 @@ export const detectDefects = async (req, res) => {
       hasOriginalImage: !!responseData.data.originalImage,
       hasResultImage: !!responseData.data.resultImage,
       summary: responseData.data.summary,
-      defectsWithThumbnails: responseData.data.defects.filter(d => d.thumbnail).length
+      defectsWithThumbnails: responseData.data.defects.filter(d => d.thumbnail).length,
+      savedHistoryId: responseData.data.savedHistoryId
     });
 
     return res.status(200).json(responseData);
 
   } catch (error) {
-    console.error('檢測失敗:', error);
+    console.error('❌ 檢測失敗:', error);
+    console.error('❌ 錯誤堆疊:', error.stack);
     return res.status(500).json({
       success: false,
       message: '檢測過程中發生錯誤: ' + error.message

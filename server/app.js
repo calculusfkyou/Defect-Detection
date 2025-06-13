@@ -25,7 +25,9 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json())
+// 🔧 增加請求大小限制以處理大型圖片和檢測結果
+app.use(express.json({ limit: '50mb' }));  // 增加到50MB
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));  // 增加到50MB
 app.use(cookieParser());  // 使用cookie解析中間件
 
 app.get('/', (req, res) => {
