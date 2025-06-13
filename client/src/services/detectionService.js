@@ -70,27 +70,254 @@ export const detectDefectsInImage = async (image, options = {}) => {
 };
 
 /**
- * 保存檢測結果到用戶歷史記錄
- * @param {Object} detectionResult - 檢測結果
- * @param {string} userId - 用戶ID
- * @returns {Promise<Object>} 保存操作結果
+ * 🔧 改進的匯出檢測結果函數 - 支持下載確認
+ * @param {Object} results - 檢測結果
+ * @returns {Promise<Object>}
  */
-export const saveDetectionResult = async (detectionResult, userId) => {
+export const exportDetectionResults = async (results) => {
   try {
-    const response = await authAxios.post('/api/detection/save', {
-      detectionResult,
-      userId,
+    console.log('📁 開始匯出檢測結果...');
+
+    const response = await authAxios.post('/api/detection/export', {
+      results
+    }, {
+      responseType: 'blob', // 重要：設置響應類型為blob
+      timeout: 30000
     });
 
-    return {
-      success: true,
-      data: response.data,
-    };
+    // 創建下載鏈接
+    const blob = new Blob([response.data], { type: 'application/zip' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    // 從響應頭獲取檔案名稱
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = 'detection_result.zip';
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (fileNameMatch) {
+        fileName = fileNameMatch[1];
+      }
+    }
+
+    // 🔧 創建 Promise 來等待用戶下載確認
+    const downloadConfirmation = new Promise((resolve, reject) => {
+      try {
+        // 創建臨時下載鏈接
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+
+        // 🔧 監聽下載事件
+        let downloadStarted = false;
+        let downloadTimeout;
+
+        // 設置下載超時（30秒）
+        downloadTimeout = setTimeout(() => {
+          if (!downloadStarted) {
+            console.log('⏰ 下載超時，用戶可能取消了下載');
+            resolve({ downloaded: false, timeout: true });
+          }
+        }, 30000);
+
+        // 監聽 focus 事件來檢測下載是否開始
+        const handleFocus = () => {
+          // 延遲檢查，給瀏覽器時間處理下載
+          setTimeout(() => {
+            downloadStarted = true;
+            clearTimeout(downloadTimeout);
+            window.removeEventListener('focus', handleFocus);
+
+            console.log('✅ 檢測到用戶返回頁面，確認下載已開始');
+            resolve({ downloaded: true, timeout: false });
+          }, 1000);
+        };
+
+        // 監聽頁面重新獲得焦點（用戶從下載對話框返回）
+        window.addEventListener('focus', handleFocus);
+
+        // 觸發下載
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('📥 下載已觸發，等待用戶確認...');
+
+        // 如果是移動設備或某些瀏覽器，可能不會觸發 focus 事件
+        // 所以我們也設置一個較短的備用計時器
+        setTimeout(() => {
+          if (!downloadStarted) {
+            downloadStarted = true;
+            clearTimeout(downloadTimeout);
+            window.removeEventListener('focus', handleFocus);
+
+            console.log('⚡ 備用確認：假設下載已開始');
+            resolve({ downloaded: true, timeout: false });
+          }
+        }, 3000);
+
+      } catch (error) {
+        console.error('❌ 下載過程發生錯誤:', error);
+        reject(error);
+      }
+    });
+
+    // 等待下載確認
+    const downloadResult = await downloadConfirmation;
+
+    // 清理 URL
+    window.URL.revokeObjectURL(downloadUrl);
+
+    if (downloadResult.downloaded) {
+      console.log('✅ 檢測結果匯出成功:', fileName);
+      return {
+        success: true,
+        fileName,
+        message: '檢測結果已成功匯出！ZIP 檔案已下載到您的下載資料夾。'
+      };
+    } else if (downloadResult.timeout) {
+      console.log('⚠️ 下載超時');
+      return {
+        success: false,
+        message: '下載超時，請檢查瀏覽器設定並重試'
+      };
+    } else {
+      console.log('⚠️ 下載可能被取消');
+      return {
+        success: false,
+        message: '下載可能被取消，請重試'
+      };
+    }
+
   } catch (error) {
-    console.error('保存結果失敗:', error);
+    console.error('❌ 匯出檢測結果失敗:', error);
     return {
       success: false,
-      message: error.response?.data?.message || '保存結果失敗，請稍後再試',
+      message: error.response?.data?.message || '匯出失敗，請稍後再試'
+    };
+  }
+};
+
+/**
+ * 🔧 改進的匯出歷史檢測結果函數 - 支持下載確認
+ * @param {string} detectionId - 檢測記錄ID
+ * @returns {Promise<Object>}
+ */
+export const exportHistoryDetectionResult = async (detectionId) => {
+  try {
+    console.log('📁 開始匯出歷史檢測結果:', detectionId);
+
+    const response = await authAxios.get(`/api/detection/export/${detectionId}`, {
+      responseType: 'blob',
+      timeout: 30000
+    });
+
+    // 創建下載鏈接
+    const blob = new Blob([response.data], { type: 'application/zip' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    // 從響應頭獲取檔案名稱
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `detection_result_${detectionId}.zip`;
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (fileNameMatch) {
+        fileName = fileNameMatch[1];
+      }
+    }
+
+    // 🔧 創建 Promise 來等待用戶下載確認
+    const downloadConfirmation = new Promise((resolve, reject) => {
+      try {
+        // 創建臨時下載鏈接
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+
+        // 🔧 監聽下載事件
+        let downloadStarted = false;
+        let downloadTimeout;
+
+        // 設置下載超時（30秒）
+        downloadTimeout = setTimeout(() => {
+          if (!downloadStarted) {
+            console.log('⏰ 下載超時，用戶可能取消了下載');
+            resolve({ downloaded: false, timeout: true });
+          }
+        }, 30000);
+
+        // 監聽 focus 事件來檢測下載是否開始
+        const handleFocus = () => {
+          // 延遲檢查，給瀏覽器時間處理下載
+          setTimeout(() => {
+            downloadStarted = true;
+            clearTimeout(downloadTimeout);
+            window.removeEventListener('focus', handleFocus);
+
+            console.log('✅ 檢測到用戶返回頁面，確認下載已開始');
+            resolve({ downloaded: true, timeout: false });
+          }, 1000);
+        };
+
+        // 監聽頁面重新獲得焦點（用戶從下載對話框返回）
+        window.addEventListener('focus', handleFocus);
+
+        // 觸發下載
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('📥 下載已觸發，等待用戶確認...');
+
+        // 備用確認機制
+        setTimeout(() => {
+          if (!downloadStarted) {
+            downloadStarted = true;
+            clearTimeout(downloadTimeout);
+            window.removeEventListener('focus', handleFocus);
+
+            console.log('⚡ 備用確認：假設下載已開始');
+            resolve({ downloaded: true, timeout: false });
+          }
+        }, 3000);
+
+      } catch (error) {
+        console.error('❌ 下載過程發生錯誤:', error);
+        reject(error);
+      }
+    });
+
+    // 等待下載確認
+    const downloadResult = await downloadConfirmation;
+
+    // 清理 URL
+    window.URL.revokeObjectURL(downloadUrl);
+
+    if (downloadResult.downloaded) {
+      console.log('✅ 歷史檢測結果匯出成功:', fileName);
+      return {
+        success: true,
+        fileName,
+        message: '歷史檢測結果已成功匯出！'
+      };
+    } else if (downloadResult.timeout) {
+      console.log('⚠️ 下載超時');
+      return {
+        success: false,
+        message: '下載超時，請檢查瀏覽器設定並重試'
+      };
+    } else {
+      console.log('⚠️ 下載可能被取消');
+      return {
+        success: false,
+        message: '下載可能被取消，請重試'
+      };
+    }
+
+  } catch (error) {
+    console.error('❌ 匯出歷史檢測結果失敗:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || '匯出失敗，請稍後再試'
     };
   }
 };
@@ -128,7 +355,7 @@ export const getUserDetectionHistory = async (options = { page: 1, limit: 10 }) 
  */
 export const getDetectionDetails = async (detectionId) => {
   try {
-    const response = await authAxios.get(`/api/detection/${detectionId}`);
+    const response = await authAxios.get(`/api/detection/details/${detectionId}`);
 
     return {
       success: true,

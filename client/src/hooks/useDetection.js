@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
-import { detectDefectsInImage, saveDetectionResult } from '../services/detectionService';
-import { compressImage } from '../utils/imageUtils';
+import { detectDefectsInImage } from '../services/detectionService';
 import useAuth from './useAuth';
 
 /**
@@ -12,7 +11,7 @@ const useDetection = () => {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
 
   // 重置檢測數據
   const resetDetection = useCallback(() => {
@@ -78,17 +77,6 @@ const useDetection = () => {
         });
 
         setResults(result.data);  // 🔑 設置檢測結果
-
-        // 如果用戶已登入，自動保存結果
-        if (isAuthenticated() && user && result.data.defects?.length > 0) {
-          try {
-            await saveDetectionResult(result.data, user.id);
-            console.log('✅ 結果已自動保存');
-          } catch (saveError) {
-            console.error('自動保存失敗:', saveError);
-          }
-        }
-
         return result.data;
       } else {
         throw new Error(result.message || '檢測失敗');
@@ -100,23 +88,7 @@ const useDetection = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [image, isAuthenticated, user, simulateProgress]);
-
-  // 保存檢測結果到用戶歷史記錄
-  const saveResults = useCallback(async () => {
-    if (!results || !isAuthenticated() || !user) {
-      setError('無法保存結果：用戶未登入或沒有檢測結果');
-      return false;
-    }
-
-    try {
-      const saveResult = await saveDetectionResult(results, user.id);
-      return saveResult.success;
-    } catch (err) {
-      setError(err.message || '保存結果時發生錯誤');
-      return false;
-    }
-  }, [results, isAuthenticated, user]);
+  }, [image, user, simulateProgress]);
 
   return {
     image,
@@ -126,8 +98,7 @@ const useDetection = () => {
     results,
     error,
     detectDefects,
-    resetDetection,
-    saveResults
+    resetDetection
   };
 };
 

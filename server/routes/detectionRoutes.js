@@ -37,6 +37,8 @@ const modelUpload = multer({
 
 // 公開路由 - 訪客也可以使用
 router.post('/', optionalAuth, upload.single('image'), detectionController.detectDefects);
+router.post('/export', detectionController.exportDetectionResult);
+router.get('/export/:id', optionalAuth, detectionController.exportHistoryDetectionResult);
 
 // 受保護路由 - 需要登入
 router.get('/history', protect, detectionController.getUserDetectionHistory);

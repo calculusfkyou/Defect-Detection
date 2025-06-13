@@ -37,3 +37,4 @@ coverage/
 .venv/
 test.jpg
 test_model.py
+temp/

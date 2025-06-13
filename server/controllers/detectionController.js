@@ -2,6 +2,8 @@ import { DetectionHistory, DefectDetail, DetectionModel } from '../model/detecti
 import { runDetection } from '../utils/modelUtils.js';
 import fs from 'fs';
 import path from 'path';
+import archiver from 'archiver';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * 處理PCB圖像瑕疵檢測
@@ -449,6 +451,261 @@ export const uploadModel = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: '上傳模型失敗: ' + error.message
+    });
+  }
+};
+
+/**
+ * 匯出單次檢測結果為ZIP文件
+ */
+export const exportDetectionResult = async (req, res) => {
+  try {
+    const { results } = req.body;
+
+    if (!results) {
+      return res.status(400).json({
+        success: false,
+        message: '沒有檢測結果可供匯出'
+      });
+    }
+
+    console.log('📁 開始匯出檢測結果...');
+
+    // 創建臨時目錄
+    const tempId = uuidv4();
+    const tempDir = path.join(process.cwd(), 'temp', 'exports', tempId);
+    const resultsDir = path.join(tempDir, 'results', 'predict');
+    const labelsDir = path.join(resultsDir, 'labels');
+
+    // 確保目錄存在
+    fs.mkdirSync(labelsDir, { recursive: true });
+
+    // 1. 保存結果圖片
+    if (results.resultImage) {
+      try {
+        // 移除 data:image/jpeg;base64, 前綴
+        const base64Data = results.resultImage.replace(/^data:image\/[a-z]+;base64,/, '');
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+
+        const outputImagePath = path.join(resultsDir, 'output.jpg');
+        fs.writeFileSync(outputImagePath, imageBuffer);
+        console.log('✅ 結果圖片已保存:', outputImagePath);
+      } catch (imgError) {
+        console.error('❌ 保存結果圖片失敗:', imgError);
+      }
+    }
+
+    // 2. 生成標籤文件
+    if (results.defects && Array.isArray(results.defects) && results.defects.length > 0) {
+      const labelLines = results.defects.map(defect => {
+        // 格式: class_id x_center y_center width height confidence
+        const classId = defect.classId || 0;
+        const xCenter = defect.xCenter || defect.box?.x || 0;
+        const yCenter = defect.yCenter || defect.box?.y || 0;
+        const width = defect.width || defect.box?.width || 0;
+        const height = defect.height || defect.box?.height || 0;
+        const confidence = defect.confidence || 0;
+
+        return `${classId} ${xCenter} ${yCenter} ${width} ${height} ${confidence}`;
+      });
+
+      const labelContent = labelLines.join('\n');
+      const labelPath = path.join(labelsDir, 'input.txt');
+      fs.writeFileSync(labelPath, labelContent, 'utf8');
+      console.log('✅ 標籤文件已保存:', labelPath);
+      console.log('📝 標籤內容:', labelContent);
+    } else {
+      // 如果沒有瑕疵，創建空的標籤文件
+      const labelPath = path.join(labelsDir, 'input.txt');
+      fs.writeFileSync(labelPath, '', 'utf8');
+      console.log('✅ 空標籤文件已保存:', labelPath);
+    }
+
+    // 3. 創建ZIP文件
+    const zipFileName = `detection_result_${Date.now()}.zip`;
+    const zipPath = path.join(tempDir, zipFileName);
+
+    await new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      output.on('close', () => {
+        console.log('✅ ZIP文件創建完成，大小:', archive.pointer(), 'bytes');
+        resolve();
+      });
+
+      archive.on('error', (err) => {
+        console.error('❌ ZIP創建失敗:', err);
+        reject(err);
+      });
+
+      archive.pipe(output);
+
+      // 添加整個 results/predict 目錄到ZIP
+      archive.directory(resultsDir, 'results/predict');
+      archive.finalize();
+    });
+
+    // 4. 發送ZIP文件
+    const zipStats = fs.statSync(zipPath);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+    res.setHeader('Content-Length', zipStats.size);
+
+    const zipStream = fs.createReadStream(zipPath);
+    zipStream.pipe(res);
+
+    // 清理臨時文件（在流結束後）
+    zipStream.on('end', () => {
+      setTimeout(() => {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          console.log('🧹 臨時文件已清理:', tempDir);
+        } catch (cleanupError) {
+          console.error('⚠️ 清理臨時文件失敗:', cleanupError);
+        }
+      }, 1000);
+    });
+
+  } catch (error) {
+    console.error('❌ 匯出檢測結果失敗:', error);
+    return res.status(500).json({
+      success: false,
+      message: '匯出失敗: ' + error.message
+    });
+  }
+};
+
+/**
+ * 從資料庫匯出歷史檢測結果
+ */
+export const exportHistoryDetectionResult = async (req, res) => {
+  try {
+    const detectionId = req.params.id;
+    const userId = req.user?.id;
+
+    console.log('📁 開始匯出歷史檢測結果:', detectionId);
+
+    // 查詢檢測記錄
+    const detectionRecord = await DetectionHistory.findOne({
+      where: {
+        id: detectionId,
+        ...(userId && { userId }) // 如果有用戶ID，則限制只能匯出自己的記錄
+      }
+    });
+
+    if (!detectionRecord) {
+      return res.status(404).json({
+        success: false,
+        message: '檢測記錄不存在或您無權訪問'
+      });
+    }
+
+    // 查詢瑕疵詳情
+    const defectDetails = await DefectDetail.findAll({
+      where: { detectionId }
+    });
+
+    console.log('📊 找到檢測記錄:', {
+      id: detectionRecord.id,
+      defectCount: detectionRecord.defectCount,
+      defectDetailsCount: defectDetails.length,
+      createdAt: detectionRecord.createdAt
+    });
+
+    // 創建臨時目錄
+    const tempId = uuidv4();
+    const tempDir = path.join(process.cwd(), 'temp', 'exports', tempId);
+    const resultsDir = path.join(tempDir, 'results', 'predict');
+    const labelsDir = path.join(resultsDir, 'labels');
+
+    // 確保目錄存在
+    fs.mkdirSync(labelsDir, { recursive: true });
+
+    // 1. 保存結果圖片
+    if (detectionRecord.resultImage) {
+      try {
+        const outputImagePath = path.join(resultsDir, 'output.jpg');
+        fs.writeFileSync(outputImagePath, detectionRecord.resultImage);
+        console.log('✅ 結果圖片已保存:', outputImagePath);
+      } catch (imgError) {
+        console.error('❌ 保存結果圖片失敗:', imgError);
+      }
+    }
+
+    // 2. 生成標籤文件
+    if (defectDetails.length > 0) {
+      const labelLines = defectDetails.map(defect => {
+        // 格式: class_id x_center y_center width height confidence
+        return `${defect.classId} ${defect.xCenter} ${defect.yCenter} ${defect.width} ${defect.height} ${defect.confidence}`;
+      });
+
+      const labelContent = labelLines.join('\n');
+      const labelPath = path.join(labelsDir, 'input.txt');
+      fs.writeFileSync(labelPath, labelContent, 'utf8');
+      console.log('✅ 標籤文件已保存:', labelPath);
+      console.log('📝 標籤內容:', labelContent);
+    } else {
+      // 如果沒有瑕疵，創建空的標籤文件
+      const labelPath = path.join(labelsDir, 'input.txt');
+      fs.writeFileSync(labelPath, '', 'utf8');
+      console.log('✅ 空標籤文件已保存:', labelPath);
+    }
+
+    // 3. 創建ZIP文件
+    const formatDate = new Date(detectionRecord.createdAt).toISOString().slice(0, 19).replace(/:/g, '-');
+    const zipFileName = `detection_result_${detectionId}_${formatDate}.zip`;
+    const zipPath = path.join(tempDir, zipFileName);
+
+    await new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      output.on('close', () => {
+        console.log('✅ ZIP文件創建完成，大小:', archive.pointer(), 'bytes');
+        resolve();
+      });
+
+      archive.on('error', (err) => {
+        console.error('❌ ZIP創建失敗:', err);
+        reject(err);
+      });
+
+      archive.pipe(output);
+
+      // 添加整個 results/predict 目錄到ZIP
+      archive.directory(resultsDir, 'results/predict');
+      archive.finalize();
+    });
+
+    // 4. 發送ZIP文件
+    const zipStats = fs.statSync(zipPath);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFileName}"`);
+    res.setHeader('Content-Length', zipStats.size);
+
+    const zipStream = fs.createReadStream(zipPath);
+    zipStream.pipe(res);
+
+    // 清理臨時文件（在流結束後）
+    zipStream.on('end', () => {
+      setTimeout(() => {
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+          console.log('🧹 臨時文件已清理:', tempDir);
+        } catch (cleanupError) {
+          console.error('⚠️ 清理臨時文件失敗:', cleanupError);
+        }
+      }, 1000);
+    });
+
+  } catch (error) {
+    console.error('❌ 匯出歷史檢測結果失敗:', error);
+    return res.status(500).json({
+      success: false,
+      message: '匯出失敗: ' + error.message
     });
   }
 };
