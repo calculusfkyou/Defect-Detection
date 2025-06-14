@@ -17,7 +17,7 @@ const DefectItem = ({ defect }) => {
   const defectType = defect.type || defect.defectType || 'unknown';
   const confidence = defect.confidence || 0;
 
-  // 處理位置數據的多種格式
+  // 🔧 修改：直接使用原始數值，不轉換為百分比
   let position;
   if (defect.box) {
     position = {
@@ -196,21 +196,26 @@ const DefectItem = ({ defect }) => {
             <div>
               <h4 className="font-medium text-gray-700 mb-2">瑕疵詳情</h4>
               <ul className="space-y-2 text-sm">
+                {/* 🔧 修改：直接顯示原始數值，保留4位小數 */}
                 <li className="flex justify-between">
                   <span className="text-gray-500">位置 X:</span>
-                  <span>{(position.x * 100).toFixed(1)}%</span>
+                  <span className="font-mono">{position.x.toFixed(4)}</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-gray-500">位置 Y:</span>
-                  <span>{(position.y * 100).toFixed(1)}%</span>
+                  <span className="font-mono">{position.y.toFixed(4)}</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-gray-500">寬度:</span>
-                  <span>{(position.width * 100).toFixed(1)}%</span>
+                  <span className="font-mono">{position.width.toFixed(4)}</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-gray-500">高度:</span>
-                  <span>{(position.height * 100).toFixed(1)}%</span>
+                  <span className="font-mono">{position.height.toFixed(4)}</span>
+                </li>
+                <li className="flex justify-between">
+                  <span className="text-gray-500">置信度:</span>
+                  <span className="font-mono">{confidence.toFixed(4)}</span>
                 </li>
               </ul>
             </div>
