@@ -35,6 +35,14 @@ const modelUpload = multer({
   }
 });
 
+// 公開的系統統計端點 - 供 Home 頁面使用
+router.get('/system-stats', detectionController.getSystemStats);
+router.get('/recent', optionalAuth, detectionController.getRecentDetections);  // 🆕 最近檢測記錄
+
+// 搜尋相關路由
+router.get('/defect-types', protect, detectionController.getAvailableDefectTypes);
+router.get('/search/suggestions', protect, detectionController.getSearchSuggestions);
+
 // 公開路由 - 訪客也可以使用
 router.post('/', optionalAuth, upload.single('image'), detectionController.detectDefects);
 router.post('/export', detectionController.exportDetectionResult);
@@ -42,7 +50,11 @@ router.get('/export/:id', optionalAuth, detectionController.exportHistoryDetecti
 
 // 受保護路由 - 需要登入
 router.get('/history', protect, detectionController.getUserDetectionHistory);
+router.get('/stats', protect, detectionController.getUserDetectionStats);
 router.get('/details/:id', protect, detectionController.getDetectionDetails);
+router.delete('/batch', protect, detectionController.batchDeleteDetectionRecords);
+router.delete('/:id', protect, detectionController.deleteDetectionRecord);
+router.post('/export/batch', protect, detectionController.exportBatchDetectionResults);
 
 // 管理員路由 - 只有管理員可以訪問
 router.post(
@@ -52,5 +64,6 @@ router.post(
   modelUpload.single('modelFile'),
   detectionController.uploadModel
 );
+router.get('/system-stats', protect, restrictTo('admin'), detectionController.getSystemStats);
 
 export default router;

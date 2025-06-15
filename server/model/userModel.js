@@ -16,7 +16,10 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: {
+      name: 'users_email_unique', // 明確指定索引名稱
+      msg: 'Email已被使用'
+    },
     validate: {
       isEmail: true,
     },

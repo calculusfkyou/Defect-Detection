@@ -70,7 +70,7 @@ export const detectDefectsInImage = async (image, options = {}) => {
 };
 
 /**
- * 🔧 改進的匯出檢測結果函數 - 支持下載確認
+ * 🔧 匯出檢測結果函數 - 支持下載確認
  * @param {Object} results - 檢測結果
  * @returns {Promise<Object>}
  */
@@ -198,7 +198,7 @@ export const exportDetectionResults = async (results) => {
 };
 
 /**
- * 🔧 改進的匯出歷史檢測結果函數 - 支持下載確認
+ * 🔧 匯出歷史檢測結果函數 - 支持下載確認
  * @param {string} detectionId - 檢測記錄ID
  * @returns {Promise<Object>}
  */
@@ -329,22 +329,70 @@ export const exportHistoryDetectionResult = async (detectionId) => {
  * @param {number} options.limit - 每頁數量
  * @returns {Promise<Object>} 歷史記錄數據
  */
-export const getUserDetectionHistory = async (options = { page: 1, limit: 10 }) => {
+export const getUserDetectionHistory = async (options = {}) => {
   try {
-    const response = await authAxios.get('/api/detection/history', {
-      params: options,
+    const {
+      page = 1,
+      limit = 12,
+      search = '',
+      dateRange = '',
+      defectType = '',
+      hasDefects = '',        // 🔧 簡化：移除數值範圍參數
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = options;
+
+    console.log('📋 請求歷史記錄:', options);
+
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      sortBy,
+      sortOrder
     });
 
-    return {
-      success: true,
-      data: response.data,
-    };
+    // 🔧 添加基本搜尋參數
+    if (search && search.trim()) params.append('search', search.trim());
+    if (dateRange) params.append('dateRange', dateRange);
+    if (defectType) params.append('defectType', defectType);
+    if (hasDefects) params.append('hasDefects', hasDefects);
+
+    const response = await authAxios.get(`/api/detection/history?${params}`);
+
+    console.log('✅ 歷史記錄API響應:', response.data);
+
+    // 🔧 檢查響應格式並確保正確返回
+    if (response.data.success && response.data.data) {
+      return {
+        success: true,
+        data: {
+          history: response.data.data.history || [],
+          pagination: response.data.data.pagination || {
+            total: 0,
+            page: 1,
+            limit: 12,
+            pages: 0
+          },
+          searchStats: response.data.data.searchStats || {},
+          appliedFilters: response.data.data.appliedFilters || {}
+        }
+      };
+    } else {
+      throw new Error(response.data.message || '無效的響應格式');
+    }
+
   } catch (error) {
-    console.error('獲取歷史記錄失敗:', error);
-    return {
-      success: false,
-      message: error.response?.data?.message || '無法獲取檢測歷史記錄',
-    };
+    console.error('❌ 獲取歷史記錄失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能查看檢測歷史');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '獲取檢測歷史失敗'
+    );
   }
 };
 
@@ -355,17 +403,331 @@ export const getUserDetectionHistory = async (options = { page: 1, limit: 10 }) 
  */
 export const getDetectionDetails = async (detectionId) => {
   try {
+    console.log('📄 請求檢測詳情:', detectionId);
+
     const response = await authAxios.get(`/api/detection/details/${detectionId}`);
 
+    console.log('✅ 檢測詳情API響應:', response.data);
+
+    // 🔧 修復：確保返回正確的數據結構
+    if (response.data.success && response.data.data) {
+      return {
+        success: true,
+        data: response.data.data // 🔑 直接返回 data 對象
+      };
+    } else {
+      throw new Error(response.data.message || '無效的響應格式');
+    }
+
+  } catch (error) {
+    console.error('❌ 獲取檢測詳情失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能查看檢測詳情');
+    } else if (error.response?.status === 404) {
+      throw new Error('檢測記錄不存在或您無權訪問');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '獲取檢測詳情失敗'
+    );
+  }
+};
+
+/**
+ * 獲取用戶檢測統計數據
+ * @returns {Promise<Object>} 統計數據
+ */
+export const getUserStats = async () => {
+  try {
+    console.log('📊 請求用戶統計數據');
+
+    const response = await authAxios.get('/api/detection/stats');
+
+    console.log('✅ 統計數據API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 獲取統計數據失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能查看統計數據');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '獲取統計數據失敗'
+    );
+  }
+};
+
+/**
+ * 獲取系統統計數據（管理員用）
+ * @returns {Promise<Object>} 系統統計數據
+ */
+export const getSystemStats = async () => {
+  try {
+    console.log('📊 請求系統統計數據');
+
+    const response = await authAxios.get('/api/detection/system-stats');
+
+    console.log('✅ 系統統計數據API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 獲取系統統計數據失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入');
+    } else if (error.response?.status === 403) {
+      throw new Error('需要管理員權限');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '獲取系統統計數據失敗'
+    );
+  }
+};
+
+/**
+ * 批量匯出檢測結果
+ * @param {Array} detectionIds - 檢測記錄ID數組
+ * @returns {Promise<Object>}
+ */
+export const exportBatchDetectionResults = async (detectionIds) => {
+  try {
+    console.log('📦 開始批量匯出檢測結果:', detectionIds);
+
+    const response = await authAxios.post('/api/detection/export/batch', {
+      detectionIds
+    }, {
+      responseType: 'blob',
+      timeout: 120000 // 2分鐘超時，因為批量處理需要更多時間
+    });
+
+    // 創建下載鏈接
+    const blob = new Blob([response.data], { type: 'application/zip' });
+    const downloadUrl = window.URL.createObjectURL(blob);
+
+    // 從響應頭獲取檔案名稱
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = `batch_detection_results_${Date.now()}.zip`;
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (fileNameMatch) {
+        fileName = fileNameMatch[1];
+      }
+    }
+
+    // 觸發下載
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 清理 URL
+    window.URL.revokeObjectURL(downloadUrl);
+
+    console.log('✅ 批量匯出成功:', fileName);
     return {
       success: true,
-      data: response.data,
+      fileName,
+      message: `批量檢測結果已成功匯出！已下載 ${detectionIds.length} 個檢測記錄。`
     };
+
   } catch (error) {
-    console.error('獲取檢測詳情失敗:', error);
+    console.error('❌ 批量匯出失敗:', error);
+
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        message: '批量匯出功能暫未實作，請聯繫開發團隊。'
+      };
+    }
+
     return {
       success: false,
-      message: error.response?.data?.message || '無法獲取檢測詳情',
+      message: error.response?.data?.message || '批量匯出失敗，請稍後再試'
+    };
+  }
+};
+
+/**
+ * 批量刪除檢測記錄
+ * @param {Array} detectionIds - 檢測記錄ID數組
+ * @returns {Promise<Object>}
+ */
+export const batchDeleteDetectionRecords = async (detectionIds) => {
+  try {
+    console.log('🗑️ 開始批量刪除檢測記錄:', detectionIds);
+
+    const response = await authAxios.delete('/api/detection/batch', {
+      data: { detectionIds },
+      timeout: 30000
+    });
+
+    console.log('✅ 批量刪除API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 批量刪除失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能刪除記錄');
+    } else if (error.response?.status === 403) {
+      throw new Error('您沒有權限刪除這些記錄');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '批量刪除失敗'
+    );
+  }
+};
+
+/**
+ * 刪除單個檢測記錄
+ * @param {string} detectionId - 檢測記錄ID
+ * @returns {Promise<Object>}
+ */
+export const deleteDetectionRecord = async (detectionId) => {
+  try {
+    console.log('🗑️ 刪除單個檢測記錄:', detectionId);
+
+    const response = await authAxios.delete(`/api/detection/${detectionId}`);
+
+    console.log('✅ 刪除API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 刪除失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能刪除記錄');
+    } else if (error.response?.status === 403) {
+      throw new Error('您沒有權限刪除此記錄');
+    } else if (error.response?.status === 404) {
+      throw new Error('檢測記錄不存在');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '刪除記錄失敗'
+    );
+  }
+};
+
+/**
+ * 獲取可用的瑕疵類型列表
+ * @returns {Promise<Object>} 瑕疵類型列表
+ */
+export const getAvailableDefectTypes = async () => {
+  try {
+    console.log('📋 請求可用瑕疵類型列表');
+
+    const response = await authAxios.get('/api/detection/defect-types');
+
+    console.log('✅ 瑕疵類型列表API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 獲取瑕疵類型列表失敗:', error);
+
+    if (error.response?.status === 401) {
+      throw new Error('請先登入才能查看瑕疵類型');
+    }
+
+    throw new Error(
+      error.response?.data?.message ||
+      error.message ||
+      '獲取瑕疵類型列表失敗'
+    );
+  }
+};
+
+/**
+ * 獲取搜尋建議
+ * @param {string} query - 搜尋關鍵字
+ * @param {string} type - 建議類型 ('all', 'id', 'date')
+ * @returns {Promise<Object>} 搜尋建議列表
+ */
+export const getSearchSuggestions = async (query, type = 'all') => {
+  try {
+    if (!query || query.length < 2) {
+      return { success: true, data: { suggestions: [] } };
+    }
+
+    console.log('🔍 請求搜尋建議:', { query, type });
+
+    const params = new URLSearchParams({
+      query: query.trim(),
+      type
+    });
+
+    const response = await authAxios.get(`/api/detection/search/suggestions?${params}`);
+
+    console.log('✅ 搜尋建議API響應:', response.data);
+    return response.data;
+
+  } catch (error) {
+    console.error('❌ 獲取搜尋建議失敗:', error);
+
+    // 搜尋建議失敗不應該影響主要功能，返回空建議
+    return { success: true, data: { suggestions: [] } };
+  }
+};
+
+/**
+ * 🆕 獲取最近的檢測記錄 - 供 Home 頁面使用
+ * @param {Object} options - 選項
+ * @param {number} options.limit - 限制數量，預設5條
+ * @returns {Promise<Object>} 最近檢測記錄
+ */
+export const getRecentDetections = async (options = {}) => {
+  try {
+    const { limit = 5 } = options;
+
+    console.log('📋 請求最近檢測記錄:', { limit });
+
+    const params = new URLSearchParams({
+      limit: limit.toString()
+    });
+
+    const response = await authAxios.get(`/api/detection/recent?${params}`);
+
+    console.log('✅ 最近檢測記錄API響應:', response.data);
+
+    if (response.data.success) {
+      return {
+        success: true,
+        data: response.data.data
+      };
+    } else {
+      throw new Error(response.data.message || '獲取最近檢測記錄失敗');
+    }
+
+  } catch (error) {
+    console.error('❌ 獲取最近檢測記錄失敗:', error);
+
+    // 🔧 對於最近記錄，即使失敗也要返回可用的數據結構
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || '獲取最近檢測記錄失敗',
+      data: {
+        recentDetections: [],
+        total: 0,
+        hasMore: false,
+        isUserSpecific: false
+      }
     };
   }
 };

@@ -7,7 +7,6 @@ import fs from 'fs'
 dotenv.config()
 
 // 引入路由模組
-import statsRouter from './routes/statsRoute.js'
 import announcementsRouter from './routes/announcementRoute.js'
 import guidesRouter from './routes/guideRoute.js'
 import aboutRouter from './routes/aboutRoute.js'
@@ -38,7 +37,6 @@ app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from GDG Backend! We\'ll go from here now.' })
 })
 
-app.use('/api/stats', statsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/guides', guidesRouter)
 app.use('/api/about', aboutRouter)

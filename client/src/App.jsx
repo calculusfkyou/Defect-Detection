@@ -8,6 +8,8 @@ import AboutPage from './pages/AboutPage'
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DetectionPage from './pages/DetectionPage';
+import HistoryPage from './pages/HistoryPage';
+import HistoryDetailPage from './pages/HistoryDetailPage';
 
 // 組件
 import PrivateRoute from './components/auth/PrivateRoute';
@@ -34,6 +36,8 @@ function App() {
             <Route path="/help/:categoryId/:articleId" element={<HelpPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/detection" element={<DetectionPage />} />
+            <Route path="/history" element={<HistoryPage />} />
+            <Route path="/history/:id" element={<HistoryDetailPage />} />
 
             {/* 認證路由 */}
             <Route path="/login" element={<LoginPage />} />
