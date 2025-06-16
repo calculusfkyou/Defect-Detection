@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
       if (result.success) {
         setUser(result.user);
-        console.log('✅ Context: 用戶資料刷新成功');
+        console.log('✅ Context: 用戶資料刷新成功:', result.user);
         return { success: true };
       } else {
         console.log('⚠️ Context: 刷新用戶資料失敗:', result.message);
@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
 
         if (result.success) {
           setUser(result.user);
+          console.log('✅ Context: 初始用戶狀態設置成功:', result.user);
         } else {
           setUser(null);
         }
@@ -55,20 +56,40 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
-  // 用戶登入
+  // 🔧 用戶登入 - 登入成功後立即刷新用戶數據
   const login = async (email, password, rememberMe = false) => {
     try {
       setError(null);
       setLoading(true);
+
+      console.log('🔑 Context: 開始登入流程...');
       const result = await loginUser({ email, password, rememberMe });
 
       if (result.success) {
-        setUser(result.user);
+        console.log('✅ Context: 登入API成功，獲取完整用戶數據...');
+
+        // 🔧 登入成功後，立即獲取完整的用戶數據（包含頭像）
+        try {
+          const userResult = await getCurrentUser();
+          if (userResult.success) {
+            setUser(userResult.user);
+            console.log('✅ Context: 完整用戶數據獲取成功:', userResult.user);
+          } else {
+            // 如果獲取完整數據失敗，使用登入返回的基本數據
+            console.warn('⚠️ Context: 無法獲取完整用戶數據，使用登入返回的基本數據');
+            setUser(result.user);
+          }
+        } catch (userError) {
+          console.warn('⚠️ Context: 獲取完整用戶數據時發生錯誤，使用登入返回的基本數據');
+          setUser(result.user);
+        }
+
         return { success: true, user: result.user };
       } else {
         throw new Error(result.message);
       }
     } catch (err) {
+      console.error('❌ Context: 登入失敗:', err);
       setError(err.message || '登入失敗');
       return { success: false, message: err.message };
     } finally {
@@ -76,20 +97,38 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // 用戶註冊
+  // 🔧 用戶註冊 - 註冊成功後也獲取完整數據
   const register = async (userData) => {
     try {
       setError(null);
       setLoading(true);
+
+      console.log('📝 Context: 開始註冊流程...');
       const result = await registerUser(userData);
 
       if (result.success) {
-        setUser(result.user);
+        console.log('✅ Context: 註冊API成功，獲取完整用戶數據...');
+
+        // 🔧 註冊成功後，立即獲取完整的用戶數據
+        try {
+          const userResult = await getCurrentUser();
+          if (userResult.success) {
+            setUser(userResult.user);
+            console.log('✅ Context: 註冊後完整用戶數據獲取成功:', userResult.user);
+          } else {
+            setUser(result.user);
+          }
+        } catch (userError) {
+          console.warn('⚠️ Context: 註冊後無法獲取完整用戶數據');
+          setUser(result.user);
+        }
+
         return { success: true, user: result.user };
       } else {
         throw new Error(result.message);
       }
     } catch (err) {
+      console.error('❌ Context: 註冊失敗:', err);
       setError(err.message || '註冊失敗');
       return { success: false, message: err.message };
     } finally {
@@ -100,10 +139,13 @@ export const AuthProvider = ({ children }) => {
   // 用戶登出
   const logout = async () => {
     try {
+      console.log('🚪 Context: 開始登出流程...');
       await logoutUser();
       setUser(null);
+      console.log('✅ Context: 用戶登出成功');
       return { success: true };
     } catch (err) {
+      console.warn('⚠️ Context: 登出API失敗，但已清除本地狀態');
       setUser(null); // 即使登出API失敗，也清除本地狀態
       return { success: false, message: err.message };
     }
@@ -128,7 +170,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
-    refreshUser, // 🔧 添加 refreshUser 函數
+    refreshUser,
     isAuthenticated,
     hasRole,
   };
