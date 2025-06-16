@@ -10,6 +10,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import DetectionPage from './pages/DetectionPage';
 import HistoryPage from './pages/HistoryPage';
 import HistoryDetailPage from './pages/HistoryDetailPage';
+import ProfilePage from './pages/ProfilePage';
 
 // 組件
 import PrivateRoute from './components/auth/PrivateRoute';
@@ -45,7 +46,7 @@ function App() {
 
             {/* 受保護路由 - 所有登入用戶可訪問 */}
             <Route element={<PrivateRoute />}>
-              {/* 在這裡添加需要登入才能訪問的路由 */}
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* 受保護路由 - 只有管理員可訪問 */}

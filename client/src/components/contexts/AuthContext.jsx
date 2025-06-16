@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { getCurrentUser, loginUser, logoutUser, registerUser } from '../../services/authService';
 
 // 創建認證上下文
@@ -8,21 +8,47 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false); // 新增狀態
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // 🔧 刷新當前用戶資料
+  const refreshUser = useCallback(async () => {
+    try {
+      console.log('🔄 Context: 刷新用戶資料...');
+
+      const result = await getCurrentUser();
+
+      if (result.success) {
+        setUser(result.user);
+        console.log('✅ Context: 用戶資料刷新成功');
+        return { success: true };
+      } else {
+        console.log('⚠️ Context: 刷新用戶資料失敗:', result.message);
+        return { success: false, message: result.message };
+      }
+    } catch (error) {
+      console.error('❌ Context: 刷新用戶資料錯誤:', error);
+      return { success: false, message: error.message };
+    }
+  }, []);
 
   // 在組件掛載時檢查用戶是否已登入
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         setLoading(true);
-        const { user } = await getCurrentUser();
-        setUser(user);
+        const result = await getCurrentUser();
+
+        if (result.success) {
+          setUser(result.user);
+        } else {
+          setUser(null);
+        }
       } catch (err) {
         // 這是預期中的錯誤 - 用戶未登入，不需要作為錯誤處理
         setUser(null);
       } finally {
         setLoading(false);
-        setAuthChecked(true); // 標記認證檢查已完成
+        setAuthChecked(true);
       }
     };
 
@@ -34,9 +60,14 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      const { user } = await loginUser({ email, password, rememberMe }); // 傳遞rememberMe
-      setUser(user);
-      return { success: true, user };
+      const result = await loginUser({ email, password, rememberMe });
+
+      if (result.success) {
+        setUser(result.user);
+        return { success: true, user: result.user };
+      } else {
+        throw new Error(result.message);
+      }
     } catch (err) {
       setError(err.message || '登入失敗');
       return { success: false, message: err.message };
@@ -50,9 +81,14 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      const { user } = await registerUser(userData);
-      setUser(user);
-      return { success: true, user };
+      const result = await registerUser(userData);
+
+      if (result.success) {
+        setUser(result.user);
+        return { success: true, user: result.user };
+      } else {
+        throw new Error(result.message);
+      }
     } catch (err) {
       setError(err.message || '註冊失敗');
       return { success: false, message: err.message };
@@ -68,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       return { success: true };
     } catch (err) {
+      setUser(null); // 即使登出API失敗，也清除本地狀態
       return { success: false, message: err.message };
     }
   };
@@ -87,10 +124,11 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
-    authChecked, // 添加到上下文中
+    authChecked,
     login,
     register,
     logout,
+    refreshUser, // 🔧 添加 refreshUser 函數
     isAuthenticated,
     hasRole,
   };

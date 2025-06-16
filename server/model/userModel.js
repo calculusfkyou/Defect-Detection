@@ -1,6 +1,5 @@
 import { DataTypes } from 'sequelize';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
 import sequelize from '../config/database.js';
 
 const User = sequelize.define('User', {
@@ -29,7 +28,17 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   avatar: {
-    type: DataTypes.TEXT('long'), // 改用TEXT類型存儲Base64編碼的圖片
+    type: DataTypes.BLOB('medium'),
+    allowNull: true,
+    defaultValue: null
+  },
+  avatarMimeType: {
+    type: DataTypes.STRING, // 存儲圖片的 MIME 類型
+    allowNull: true,
+    defaultValue: null
+  },
+  avatarSize: {
+    type: DataTypes.INTEGER, // 存儲圖片大小（字節）
     allowNull: true,
     defaultValue: null
   },
@@ -62,13 +71,27 @@ const User = sequelize.define('User', {
   },
 });
 
-// 檢查密碼是否正確的實例方法
-User.prototype.isPasswordCorrect = async function(password) {
+// 檢查密碼是否正確
+User.prototype.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// 同步模型到資料庫
-// User.sync({ alter: true });
+// 獲取頭像 URL
+User.prototype.getAvatarUrl = function () {
+  if (this.avatar && this.avatarMimeType) {
+    // 返回可用於前端的數據 URL
+    const base64Data = this.avatar.toString('base64');
+    return `data:${this.avatarMimeType};base64,${base64Data}`;
+  }
+  return null;
+};
+
+// 設置頭像
+User.prototype.setAvatar = function (buffer, mimeType) {
+  this.avatar = buffer;
+  this.avatarMimeType = mimeType;
+  this.avatarSize = buffer ? buffer.length : null;
+};
 
 // 初始化預設用戶
 const initDefaultUsers = async () => {

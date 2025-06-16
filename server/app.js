@@ -12,6 +12,7 @@ import guidesRouter from './routes/guideRoute.js'
 import aboutRouter from './routes/aboutRoute.js'
 import authRoutes from './routes/authRoutes.js';
 import detectionRoutes from './routes/detectionRoutes.js'
+import profileRoutes from './routes/profileRoutes.js';
 import cookieParser from 'cookie-parser';
 // import { initDefaultUsers } from './model/userModel.js';
 
@@ -42,6 +43,7 @@ app.use('/api/guides', guidesRouter)
 app.use('/api/about', aboutRouter)
 app.use('/api/detection', detectionRoutes)
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 // initDefaultUsers();
 
 const startServer = (port) => {

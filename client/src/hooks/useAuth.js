@@ -12,6 +12,7 @@ const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
 
+  // 🔧 直接返回 context，其中已包含 refreshUser 函數
   return context;
 };
 

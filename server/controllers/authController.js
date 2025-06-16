@@ -145,7 +145,20 @@ export const getCurrentUser = async (req, res) => {
       return res.status(404).json({ success: false, message: '找不到用戶' });
     }
 
-    res.status(200).json({ success: true, user });
+    // 🔧 構建用戶響應數據，包含頭像 URL
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.getAvatarUrl(), // 🔧 使用新方法獲取頭像 URL
+      role: user.role,
+      active: user.active,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    res.status(200).json({ success: true, user: userData });
   } catch (error) {
     console.error('Get current user error:', error);
     res.status(500).json({ success: false, message: '獲取用戶信息失敗' });
@@ -161,7 +174,24 @@ export const getAllUsers = async (req, res) => {
       attributes: { exclude: ['password'] },
     });
 
-    res.status(200).json({ success: true, count: users.length, users });
+    // 🔧 為每個用戶添加頭像 URL
+    const usersWithAvatars = users.map(user => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar: user.getAvatarUrl(),
+      role: user.role,
+      active: user.active,
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: usersWithAvatars.length,
+      users: usersWithAvatars
+    });
   } catch (error) {
     console.error('Get all users error:', error);
     res.status(500).json({ success: false, message: '獲取用戶列表失敗' });
