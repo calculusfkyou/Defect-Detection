@@ -1449,7 +1449,8 @@ export const getSystemStats = async (req, res) => {
       monthlyInspections,
       avgConfidence,
       defectsByType,
-      recentActivity
+      recentActivity,
+      defectiveInspections // 🔧 新增：有瑕疵的檢測次數
     ] = await Promise.all([
       // 1. 總檢測次數
       DetectionHistory.count(),
@@ -1503,20 +1504,39 @@ export const getSystemStats = async (req, res) => {
             [sequelize.Sequelize.Op.gte]: new Date(Date.now() - 24 * 60 * 60 * 1000)
           }
         }
+      }),
+
+      // 🔧 9. 有瑕疵的檢測次數（用於計算瑕疵率）
+      DetectionHistory.count({
+        where: {
+          defectCount: {
+            [sequelize.Sequelize.Op.gt]: 0
+          }
+        }
       })
     ]);
 
-    // 🔧 計算衍生統計數據
+    // 🔧 修復：計算正確的統計指標
     const avgConfidenceValue = avgConfidence?.dataValues?.avgConfidence || 0;
-    const qualityRate = totalInspections > 0
-      ? ((totalInspections - await DetectionHistory.count({ where: { defectCount: { [sequelize.Sequelize.Op.gt]: 0 } } })) / totalInspections * 100)
+
+    // 🔑 修復瑕疵率計算：應該是「有瑕疵的檢測次數 / 總檢測次數」
+    const defectRate = totalInspections > 0
+      ? Number(((defectiveInspections / totalInspections) * 100).toFixed(1))
       : 0;
+
+    // 🔑 修復品質通過率計算：無瑕疵檢測 / 總檢測
+    const qualityRate = totalInspections > 0
+      ? Number(((totalInspections - defectiveInspections) / totalInspections * 100).toFixed(1))
+      : 100;
+
+    // 🔑 修復平均置信度：確保以百分比形式返回
+    const averageConfidence = Number((avgConfidenceValue * 100).toFixed(1));
 
     // 🔧 處理瑕疵類型統計
     const defectTypeStats = defectsByType.map(item => ({
       type: item.defectType,
       count: parseInt(item.dataValues.count),
-      percentage: totalDefects > 0 ? (parseInt(item.dataValues.count) / totalDefects * 100).toFixed(1) : 0
+      percentage: totalDefects > 0 ? Number((parseInt(item.dataValues.count) / totalDefects * 100).toFixed(1)) : 0
     }));
 
     // 🔧 獲取趨勢數據（最近7天）
@@ -1543,6 +1563,11 @@ export const getSystemStats = async (req, res) => {
       })
     );
 
+    // 🔑 計算月增長率（如果有足夠數據）
+    const monthlyGrowth = weeklyInspections > 0 && monthlyInspections > weeklyInspections * 4
+      ? Number(((monthlyInspections - weeklyInspections * 4) / (weeklyInspections * 4) * 100).toFixed(1))
+      : 0;
+
     // 🔧 構建響應數據
     const systemStats = {
       // 基礎統計
@@ -1552,11 +1577,12 @@ export const getSystemStats = async (req, res) => {
       weeklyInspections,
       monthlyInspections,
       recentActivity, // 24小時內活動
+      defectiveInspections, // 🔧 新增：有瑕疵的檢測次數
 
-      // 品質指標
-      averageConfidence: Number(avgConfidenceValue.toFixed(2)),
-      qualityRate: Number(qualityRate.toFixed(1)),
-      defectRate: totalInspections > 0 ? Number(((totalDefects / totalInspections) * 100).toFixed(1)) : 0,
+      // 🔑 修復後的品質指標
+      averageConfidence, // 已經是百分比 (0-100)
+      qualityRate, // 品質通過率 (0-100)
+      defectRate, // 瑕疵率 (0-100)
 
       // 瑕疵類型分布
       defectTypeDistribution: defectTypeStats,
@@ -1567,9 +1593,17 @@ export const getSystemStats = async (req, res) => {
       // 成長指標
       growth: {
         dailyAverage: Number((weeklyInspections / 7).toFixed(1)),
-        monthlyGrowth: monthlyInspections > weeklyInspections * 4
-          ? Number(((monthlyInspections - weeklyInspections * 4) / (weeklyInspections * 4) * 100).toFixed(1))
-          : 0
+        monthlyGrowth
+      },
+
+      // 🔧 新增調試資訊
+      debug: {
+        avgConfidenceRaw: avgConfidenceValue,
+        defectiveInspections,
+        totalInspections,
+        calculatedDefectRate: defectRate,
+        calculatedQualityRate: qualityRate,
+        calculatedAvgConfidence: averageConfidence
       },
 
       // 系統健康狀態
@@ -1583,8 +1617,11 @@ export const getSystemStats = async (req, res) => {
     console.log('✅ 全系統統計數據獲取成功:', {
       totalInspections: systemStats.totalInspections,
       totalDefects: systemStats.totalDefects,
+      defectiveInspections: systemStats.defectiveInspections,
+      defectRate: systemStats.defectRate,
+      qualityRate: systemStats.qualityRate,
       averageConfidence: systemStats.averageConfidence,
-      qualityRate: systemStats.qualityRate
+      debug: systemStats.debug
     });
 
     return res.status(200).json({
