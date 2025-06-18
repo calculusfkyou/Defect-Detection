@@ -23,10 +23,10 @@ class GuideModel {
         },
         {
           id: 3,
-          title: "生成報告",
-          description: "產生詳細的檢測報告",
-          icon: "report",
-          to: "/reports",
+          title: "個人資料",
+          description: "管理個人帳戶、頭像與使用偏好設定",
+          icon: "profile",
+          to: "/profile",
           requiresAuth: true
         }
       ],
@@ -38,8 +38,9 @@ class GuideModel {
           title: '開始檢測',
           steps: [
             '點擊「影像檢測」按鈕進入檢測頁面',
-            '上傳PCB板照片或使用攝影機拍攝',
-            '系統自動分析並標記瑕疵'
+            '拖曳上傳PCB影像或點擊選擇檔案',
+            '調整置信度閾值（預設50%）並點擊開始檢測',
+            '模型將自動分析並標記瑕疵'
           ],
           icon: 'camera'
         },
@@ -47,9 +48,10 @@ class GuideModel {
           id: 2,
           title: '解讀檢測結果',
           steps: [
-            '紅色標記表示瑕疵位置',
-            '點擊瑕疵區域可查看詳細描述',
-            '使用縮放功能檢視細節'
+            '方形邊框標記瑕疵位置與類型',
+            '點擊瑕疵種類可查看詳細描述',
+            '檢視置信度分數判斷準確性',
+            '橫向選擇檢視檢測圖片'
           ],
           icon: 'search'
         },
@@ -57,9 +59,9 @@ class GuideModel {
           id: 3,
           title: '生成檢測報告',
           steps: [
-            '檢測完成後點擊「生成報告」',
-            '選擇報告格式（PDF或Excel）',
-            '報告將包含所有瑕疵詳情與統計數據'
+            '檢測完成後點擊「匯出結果」',
+            '選擇儲存路徑',
+            '資料夾將包含所有瑕疵詳情與檢測圖片'
           ],
           icon: 'chart'
         }
@@ -69,7 +71,7 @@ class GuideModel {
 
   // 獲取所有使用手冊分類
   static async getHelpCategories() {
-    // 修改：擴充模擬數據，確保每個父標題都有子標題
+    // 擴充模擬數據，確保每個父標題都有子標題
     return {
       categories: [
         {

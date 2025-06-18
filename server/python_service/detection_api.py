@@ -367,7 +367,7 @@ async def detect_defects(
         # 清理臨時文件
         if os.path.exists(session_dir):
             try:
-                # shutil.rmtree(session_dir)  # 暫時註解，方便調試
+                shutil.rmtree(session_dir)  # 暫時註解，方便調試
                 print(f"🧹 保留臨時目錄用於調試: {session_dir}")
             except Exception as cleanup_error:
                 print(f"⚠️ 清理臨時目錄失敗: {cleanup_error}")
