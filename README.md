@@ -148,7 +148,7 @@ PCB 瑕疵檢測系統是一個以 React、Express 與 FastAPI 組成的三層�
 
 ## REST API 概覽
 | Method | Path | 功能 | 認證 |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- |
 | POST | `/api/auth/register` | 註冊新使用者 | 否 |
 | POST | `/api/auth/login` | 使用者登入 | 否 
 | POST | `/api/auth/logout` | 清除登入 Cookie | 否 |
@@ -192,10 +192,6 @@ PCB 瑕疵檢測系統是一個以 React、Express 與 FastAPI 組成的三層�
 - `server/scripts/cleanData.js`：清空檢測主檔與細項、重置 AUTO_INCREMENT 並調整索引，適合測試前重置資料。
 - `server/scripts/cleanIndex.js`：清除 User 表多餘 email 索引並保留單一唯一索引，以改善資料庫效能。
 - `server/scripts/resetDetectionIds.js`：重新排序檢測與瑕疵記錄 ID，維持編號連續性並處理外鍵依賴。
-
-## 文件與協作
-- `docs/專案說明文件 (必看!!!).md`：概述專案架構、啟動方式與 Git Flow 建議。
-- `docs/一些注意事項.md`：補充 Proxy、路由、Middleware 與開發注意事項，適合作為新成員入門手冊。
 
 ## 品質檢查
 - 前端提供 `npm run lint`、`npm run build`、`npm run preview` 等腳本。
