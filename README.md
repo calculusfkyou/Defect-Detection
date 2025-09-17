@@ -26,17 +26,17 @@ Defect-Detection/
 │   └── src/
 │       ├── components/        # 可重用UI元件
 |           ├── announcements/ # 最新公告頁面元件
-│           ├── constants/     # 常量定義檔案
-|           ├── contexts/
-│           ├── features/      # 功能元件 (ImageUploader, DetectionViewer)
-|           ├── help/          # 使用手冊頁面元件
+│           ├── constants/     # 定義全域常量（如 API 路徑、靜態資料）
+|           ├── contexts/      # React Context，用於全域狀態管理（如用戶驗證、主題設定）
+│           ├── features/      # 核心功能元件（如影像上傳、檢測結果顯示）
+|           ├── help/          # 使用手冊相關元件（如目錄、內容顯示）
 │           ├── layout/        # 頁面布局元件 (Navbar, Footer)
-│           |── services/      # API服務和外部接口
+│           |── services/      # API 請求與外部接口的封裝
 │           └── ui/            # 基礎UI元件 (Button, Card, Badge)
 │       ├── pages/             # 頁面組件
 │           |── api/           # API相關頁面
 │           └── auth/          # 帳號驗證相關頁面
-│       ├── hooks/             # 自定義React Hooks (useDetection, useAuth)
+│       ├── hooks/             # 自定義 React Hooks，封裝業務邏輯（如公告、幫助內容的資料處理）
 │       ├── utils/             # 工具函數 (日期格式化, 檔案處理)
 │       ├── tests/             # 單元與整合測試
 │       ├── App.jsx            # 應用主入口
@@ -44,6 +44,7 @@ Defect-Detection/
 │
 ├── server/                    # 後端 (Express)
 │   ├── config/                # 環境變數與資料庫設定
+│       └── database.js        # 資料庫連線與設定。
 │   ├── controllers/           # API 邏輯控制層
 │   ├── middlewares/           # 驗證、錯誤處理等中介層
 │   ├── model/                 # 資料模型 (會員、公告、檢測記錄)

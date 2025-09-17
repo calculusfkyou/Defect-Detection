@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { announcementService } from '../components/services/announcementService';
+import { announcementService } from '../services/announcementService';
 
 export default function useAnnouncement(id) {
   const [announcement, setAnnouncement] = useState(null);

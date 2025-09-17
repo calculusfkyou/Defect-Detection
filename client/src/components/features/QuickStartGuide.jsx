@@ -22,9 +22,10 @@ export default function QuickStartGuide({ isAuthenticated }) {
         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
       </svg>
     ),
-    report: (
+    // 🔧 修改：將 report 圖標改為 profile 圖標
+    profile: (
       <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm4-1a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-2-7a1 1 0 00-1 1v3a1 1 0 102 0V5a1 1 0 00-1-1z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
       </svg>
     ),
     camera: (
@@ -38,9 +39,10 @@ export default function QuickStartGuide({ isAuthenticated }) {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
     ),
-    chart: (
-      <svg className="h-6 w-6 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+    // 🔧 修改：將 chart 圖標改為 user 圖標（用於個人資料管理步驟）
+    user: (
+      <svg className="h-6 w-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
       </svg>
     )
   };
@@ -195,7 +197,7 @@ export default function QuickStartGuide({ isAuthenticated }) {
                 <div className="p-6 h-64 flex flex-col">
                   <div className="flex items-center mb-4">
                     <div className="p-3 bg-blue-50 rounded-lg mr-2">
-                      {iconComponents[guide.icon] || iconComponents.document}
+                      {iconComponents[guide.icon] || iconComponents.user}
                     </div>
                     <h3 className="text-lg font-semibold">{guide.title}</h3>
                   </div>

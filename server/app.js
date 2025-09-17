@@ -1,12 +1,20 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import sequelize from './config/database.js'
+import path from 'path'
+import fs from 'fs'
 dotenv.config()
 
 // 引入路由模組
-import statsRouter from './routes/statsRoute.js'
 import announcementsRouter from './routes/announcementRoute.js'
 import guidesRouter from './routes/guideRoute.js'
+import aboutRouter from './routes/aboutRoute.js'
+import authRoutes from './routes/authRoutes.js';
+import detectionRoutes from './routes/detectionRoutes.js'
+import profileRoutes from './routes/profileRoutes.js';
+import cookieParser from 'cookie-parser';
+// import { initDefaultUsers } from './model/userModel.js';
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -17,7 +25,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json())
+// 🔧 增加請求大小限制以處理大型圖片和檢測結果
+app.use(express.json({ limit: '50mb' }));  // 增加到50MB
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));  // 增加到50MB
+app.use(cookieParser());  // 使用cookie解析中間件
 
 app.get('/', (req, res) => {
   res.send('伺服器運行中 🚀');
@@ -27,13 +38,26 @@ app.get('/api/hello', (req, res) => {
   res.json({ message: 'Hello from GDG Backend! We\'ll go from here now.' })
 })
 
-app.use('/api/stats', statsRouter)
 app.use('/api/announcements', announcementsRouter)
 app.use('/api/guides', guidesRouter)
+app.use('/api/about', aboutRouter)
+app.use('/api/detection', detectionRoutes)
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+// initDefaultUsers();
 
 const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`✅ Server running on http://localhost:${port}`);
+  const server = app.listen(port, async () => {
+    try {
+      await sequelize.authenticate();
+      console.log('MySQL connected successfully');
+
+      await sequelize.sync({ alter: true });
+      console.log('Tables sync successfully');
+    } catch (error) {
+      console.log('Unable to connect to MySQL:', error);
+    }
+    console.log(`✅ Server running on http://localhost:${PORT}`);
   });
 
   server.on('error', (err) => {

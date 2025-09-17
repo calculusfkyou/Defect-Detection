@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import helpService from '../components/services/helpService';
+import helpService from '../services/helpService';
 
 export default function useHelpContent(categoryId, articleId, initialSearchQuery = '') {
   const [categories, setCategories] = useState([]);
