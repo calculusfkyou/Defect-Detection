@@ -253,14 +253,14 @@ const HistoryBatchActions = ({
           </div>
 
           {/* 🔧 調試訊息（開發環境） */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* {process.env.NODE_ENV === 'development' && (
             <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
               <strong>調試訊息:</strong>
               <div>onDelete 類型: {typeof onDelete}</div>
               <div>selectedCount: {selectedCount}</div>
               <div>isDeleting: {isDeleting.toString()}</div>
             </div>
-          )}
+          )} */}
         </motion.div>
       </AnimatePresence>
 
