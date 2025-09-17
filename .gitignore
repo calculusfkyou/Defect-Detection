@@ -31,3 +31,10 @@ Thumbs.db
 
 # coverage / test
 coverage/
+
+*.onnx
+*.pt
+.venv/
+test.jpg
+test_model.py
+temp/
