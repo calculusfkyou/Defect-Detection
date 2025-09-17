@@ -109,7 +109,7 @@ PCB 瑕疵檢測系統是一個以 React、Express 與 FastAPI 組成的三層�
 
 ## 環境變數
 | 變數 | 說明 | 
-| --- | --- | --- |
+| --- | --- |
 | `PORT` | Express 監聽埠，預設 5000 |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | MySQL 連線資訊 |
 | `NODE_ENV` | 控制 Sequelize 日誌輸出與 Cookie secure 設定 | 【F:server/config/database.js†L17-L31】
